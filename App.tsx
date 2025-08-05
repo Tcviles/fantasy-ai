@@ -1,31 +1,21 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet, Text, View, StatusBar } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import MenuScreen from './src/screens/MenuScreen';
+import ComparePlayersScreen from './src/screens/ComparePlayersScreen';
+import DevScreen from './src/screens/DevScreen';
+import { RootStackParamList } from './src/utils/types';
 
-const App = () => {
+const Stack = createNativeStackNavigator<RootStackParamList>();
+
+export default function App() {
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.container}>
-        <Text style={styles.text}>Fantasy AI App is up and running!</Text>
-      </View>
-    </SafeAreaView>
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="Menu" screenOptions={{headerShown: false}}>
+        <Stack.Screen name="Menu" component={MenuScreen} />
+        <Stack.Screen name="Compare" component={ComparePlayersScreen} />
+        <Stack.Screen name="Dev" component={DevScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
-};
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  text: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-});
-
-export default App;
+}
