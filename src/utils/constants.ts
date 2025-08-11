@@ -1,4 +1,9 @@
 export const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
+export const NFL_TEAMS = [
+  'ARI','ATL','BAL','BUF','CAR','CHI','CIN','CLE','DAL','DEN','DET','GB',
+  'HOU','IND','JAX','KC','LV','LAC','LAR','MIA','MIN','NE','NO','NYG','NYJ',
+  'PHI','PIT','SEA','SF','TB','TEN','WSH'
+];
 export const COLORS = {
   background: '#0D1117',
   card: '#1F2937',

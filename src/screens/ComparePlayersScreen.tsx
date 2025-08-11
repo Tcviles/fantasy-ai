@@ -24,29 +24,16 @@ export default function ComparePlayersScreen() {
   const [longAnswer, setLongAnswer] = useState('');
   const [showRecommendationModal, setShowRecommendationModal] = useState(false);
 
+  // light lm
+  // cosmos vs dyanmo
+  // synapse
+  // machine learning model vs llm (no llm)
+  // oriely ai engineering
+
+
   const selectPlayer = (index: number) => {
     setPositionPickerIndex(index);
     setModalVisible(true);
-  };
-// light lm
-// cosmos vs dyanmo
-// synapse
-// machine learning model vs llm (no llm)
-// oriely ai engineering
-  const handlePositionSelect = async (pos: string) => {
-    try {
-      const data = await fetchPlayersByPosition(pos);
-
-      const selectedIds = selectedPlayers.filter(Boolean).map(p => p.player_id);
-      const filtered = data.filter((player: any) => !selectedIds.includes(player.player_id));
-
-      setPlayers(filtered);
-      setPosition(pos);
-    } catch (error) {
-      console.error(`[CompareScreen] handlePositionSelect ERROR for ${pos}:`, error);
-      setPlayers([]);
-      setPosition(null);
-    }
   };
 
   const handlePlayerSelect = (player: any) => {
@@ -55,8 +42,6 @@ export default function ComparePlayersScreen() {
       updated[positionPickerIndex] = player;
       setSelectedPlayers(updated);
       setModalVisible(false);
-      setPlayers([]);
-      setPosition(null);
     }
   };
 
@@ -79,8 +64,8 @@ export default function ComparePlayersScreen() {
                 <View style={styles.playerContent}>
                   <Text style={styles.playerText}>{label}</Text>
                   <View style={styles.iconRow}>
-                    {!p?.is_favorite && <Text style={styles.favoriteIcon}>⭐</Text>}
-                    {!p?.is_injured && <Text style={styles.injuryIcon}>⚠️</Text>}
+                    {p?.is_favorite && <Text style={styles.favoriteIcon}>⭐</Text>}
+                    {p?.is_injured && <Text style={styles.injuryIcon}>⚠️</Text>}
                   </View>
                 </View>
               </TouchableOpacity>
@@ -141,14 +126,7 @@ export default function ComparePlayersScreen() {
 
       <SelectPlayerModal
         visible={modalVisible}
-        position={position}
-        players={players}
-        onClose={() => {
-          setModalVisible(false);
-          setPlayers([]);
-          setPosition(null);
-        }}
-        onSelectPosition={handlePositionSelect}
+        onClose={() => setModalVisible(false)}
         onSelectPlayer={handlePlayerSelect}
       />
 
