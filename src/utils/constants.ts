@@ -7,12 +7,14 @@ export const NFL_TEAMS = [
 export const COLORS = {
   background: '#0D1117',
   card: '#1F2937',
-  accent: '#00FF85',
+  accent: '#00FF85',  // Your bright green accent color
   danger: '#FF3B30',
   gold: '#FFD700',
   text: '#FFFFFF',
   mutedText: '#9CA3AF',
+  primary: '#007BFF', // Primary blue color for buttons
 }
+
 export const theme = {
   colors: {
     background: '#0D1117',
@@ -23,6 +25,8 @@ export const theme = {
     text: '#FFFFFF',
     mutedText: '#9CA3AF',
     overlay: 'rgba(0, 0, 0, 0.5)',
+    primary: '#007BFF',  // Added primary color for Save buttons
+    success: '#28a745',  // Success green
   },
   spacing: {
     sm: 10,

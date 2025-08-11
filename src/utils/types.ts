@@ -3,6 +3,9 @@ export type RootStackParamList = {
   Compare: undefined;
   Dev: undefined;
   KeeperCalc: undefined;
+  CheatSheet: undefined;
+  EditCheatSheet: undefined;
+  CheatSheetChecklist: { cheatSheet: any };
 };
 
 export type Player = {

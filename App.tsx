@@ -6,6 +6,9 @@ import ComparePlayersScreen from './src/screens/ComparePlayersScreen';
 import DevScreen from './src/screens/DevScreen';
 import { RootStackParamList } from './src/utils/types';
 import KeeperCalculatorScreen from './src/screens/KeeperCalculatorScreen';
+import CheatSheetScreen from './src/screens/CheatSheetScreen';
+import EditCheatSheetScreen from './src/screens/EditCheatSheetScreen';
+import CheatSheetChecklist from './src/components/CheatSheetChecklist';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -16,6 +19,9 @@ export default function App() {
         <Stack.Screen name="Menu" component={MenuScreen} />
         <Stack.Screen name="Compare" component={ComparePlayersScreen} />
         <Stack.Screen name="KeeperCalc" component={KeeperCalculatorScreen} />
+        <Stack.Screen name="CheatSheet" component={CheatSheetScreen} />
+        <Stack.Screen name="EditCheatSheet" component={EditCheatSheetScreen} />
+        <Stack.Screen name="CheatSheetChecklist" component={CheatSheetChecklist} />
         <Stack.Screen name="Dev" component={DevScreen} />
       </Stack.Navigator>
     </NavigationContainer>

@@ -1,9 +1,6 @@
-// SelectPlayerModal.tsx (new 3-step flow)
 import React, { useEffect, useState } from 'react';
-import {
-  Modal, View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Button
-} from 'react-native';
-import { POSITIONS, theme, NFL_TEAMS } from '../utils/constants';
+import { Modal, View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Button } from 'react-native';
+import { NFL_TEAMS, POSITIONS, theme } from '../utils/constants';
 import { fetchPlayersByPosition } from '../services/api';
 import { Player } from '../utils/types';
 
@@ -11,11 +8,14 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   onSelectPlayer: (player: Player) => void;
+  filterPlayers?: any[];  // New prop to filter players (optional)
 };
 
 type Stage = 'positions' | 'teams' | 'players';
 
-export default function SelectPlayerModal({ visible, onClose, onSelectPlayer }: Props) {
+export default function SelectPlayerModal({
+  visible, onClose, onSelectPlayer, filterPlayers = []
+}: Props) {
   const [stage, setStage] = useState<Stage>('positions');
   const [selectedPos, setSelectedPos] = useState<string | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
@@ -45,11 +45,12 @@ export default function SelectPlayerModal({ visible, onClose, onSelectPlayer }: 
     setLoading(true);
     setError(null);
     try {
-      // 🔑 Update API to accept both position & team (see Lambda below)
       const resp = await fetchPlayersByPosition(selectedPos!, team);
       const data: Player[] = Array.isArray(resp) ? resp : (resp?.players ?? []);
-      setPlayers(data);
-    } catch (e: any) {
+      
+      // Filter out already selected players if filterPlayers is provided
+      setPlayers(data.filter(player => !filterPlayers.some(selected => selected.player_id === player.player_id))); 
+    } catch (e) {
       setError('Failed to load players. Try again.');
       setPlayers([]);
     } finally {
@@ -82,7 +83,7 @@ export default function SelectPlayerModal({ visible, onClose, onSelectPlayer }: 
 
         {stage === 'teams' && (
           <FlatList
-            data={NFL_TEAMS} // e.g., ['ARI','ATL','BAL',...]
+            data={NFL_TEAMS}
             keyExtractor={(item) => item}
             numColumns={3}
             columnWrapperStyle={styles.rowWrap}

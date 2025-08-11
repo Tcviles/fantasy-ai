@@ -19,6 +19,10 @@ export default function MenuScreen({ navigation }: Props) {
         <Text style={styles.buttonText}>Keeper Calculator</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('CheatSheet')}>
+        <Text style={styles.buttonText}>Cheat Sheet Creator</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Dev')}>
         <Text style={styles.buttonText}>Dev</Text>
       </TouchableOpacity>
