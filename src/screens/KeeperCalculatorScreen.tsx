@@ -108,6 +108,8 @@ export default function KeeperCalculatorScreen() {
       // 👇 Call your new Lambda through the API service
       const data = await getKeeperRecommendations(payload.league, payload.players);
 
+      console.log(data)
+
       // Expected shape from Lambda:
       // { assumptions, recommendations: { keep: [...], bench: [...] }, summary }
       setResults(data);

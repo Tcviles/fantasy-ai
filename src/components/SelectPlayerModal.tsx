@@ -109,7 +109,13 @@ export default function SelectPlayerModal({
                 data={players}
                 keyExtractor={(item) => String(item.player_id)}
                 renderItem={({ item }) => (
-                  <TouchableOpacity onPress={() => onSelectPlayer(item)} style={styles.listRow}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      onSelectPlayer(item);
+                      onClose(); // close modal after selection
+                    }}
+                    style={styles.listRow}
+                  >
                     <Text style={styles.listRowText}>
                       {item.first_name} {item.last_name}{item.team ? ` (${item.team})` : ''}
                     </Text>

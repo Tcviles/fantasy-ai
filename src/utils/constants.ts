@@ -1,8 +1,8 @@
 export const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 export const NFL_TEAMS = [
-  'ARI','ATL','BAL','BUF','CAR','CHI','CIN','CLE','DAL','DEN','DET','GB',
-  'HOU','IND','JAX','KC','LV','LAC','LAR','MIA','MIN','NE','NO','NYG','NYJ',
-  'PHI','PIT','SEA','SF','TB','TEN','WSH'
+  'ARI', 'ATL', 'BAL', 'BUF', 'CAR', 'CHI', 'CIN', 'CLE', 'DAL', 'DEN', 'DET', 'GB',
+  'HOU', 'IND', 'JAX', 'KC', 'LV', 'LAC', 'LAR', 'MIA', 'MIN', 'NE', 'NO', 'NYG', 'NYJ',
+  'PHI', 'PIT', 'SEA', 'SF', 'TB', 'TEN', 'WSH'
 ];
 export const COLORS = {
   background: '#0D1117',
@@ -13,6 +13,8 @@ export const COLORS = {
   text: '#FFFFFF',
   mutedText: '#9CA3AF',
   primary: '#007BFF', // Primary blue color for buttons
+  disabledText: '#666666',
+  disabledBackground: '#2D2D2D',
 }
 
 export const theme = {
@@ -27,6 +29,8 @@ export const theme = {
     overlay: 'rgba(0, 0, 0, 0.5)',
     primary: '#007BFF',  // Added primary color for Save buttons
     success: '#28a745',  // Success green
+    disabledText: '#666666',
+    disabledBackground: '#2D2D2D',
   },
   spacing: {
     sm: 10,

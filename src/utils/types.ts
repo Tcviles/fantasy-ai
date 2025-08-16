@@ -4,7 +4,9 @@ export type RootStackParamList = {
   Dev: undefined;
   KeeperCalc: undefined;
   CheatSheet: undefined;
-  EditCheatSheet: undefined;
+  DraftChecklist: undefined;
+  DraftChecklistView: { sheet: any };
+  EditCheatSheet: { cheatSheetId?: string } | undefined;
   CheatSheetChecklist: { cheatSheet: any };
 };
 
@@ -17,6 +19,12 @@ export type State = {
   players: Player[]
 }
 
+export type ChecklistItem = Player & { drafted?: boolean } | { type: 'tier', title: string };
+
+export function isPlayerItem(item: ChecklistItem): item is Player & { drafted?: boolean } {
+  return !('type' in item);
+}
+
 export type Player = {
   player_id: string | number;   // allow both from APIs
   first_name: string;
@@ -25,6 +33,14 @@ export type Player = {
   position: string;
   is_injured?: boolean;
   is_favorite?: boolean;
+};
+
+export type CheatSheet = {
+  id: string;
+  name: string;
+  players: Player[];
+  modified?: string;
+  notes?: string;
 };
 
 export type KeeperRecPlayer = {

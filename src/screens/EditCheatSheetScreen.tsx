@@ -1,40 +1,100 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, FlatList, Button, Alert, Modal, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, StyleSheet, TextInput, FlatList, Alert, TouchableOpacity } from 'react-native';
 import { theme } from '../utils/constants';
 import SelectPlayerModal from '../components/SelectPlayerModal';
 import { getDataFromAsyncStorage, saveDataToAsyncStorage } from '../utils/asyncStorageHelper';
+import debounce from 'lodash.debounce';
+import { Player } from '../utils/types';
+import { PlayerRow } from '../components/CheatSheet/PlayerRow';
+import { TierRow } from '../components/CheatSheet/TierRow';
+import { autoSaveCheatSheet, createNewTier, getIndexOfRankedPlayer, getPlayerRank, moveItem } from '../utils/cheatSheetHelpers';
+import MoveTierModal from '../components/CheatSheet/MoveTeirModal';
+import RankModal from '../components/CheatSheet/RankModal';
+import { AppContext } from '../context/AppContext';
+
 
 const EditCheatSheetScreen = ({ route, navigation }: any) => {
-  const { cheatSheet } = route.params || {};
-  const [name, setName] = useState(cheatSheet?.name || '');
-  const [players, setPlayers] = useState<any[]>(cheatSheet?.players || []);
-  const [modalVisible, setModalVisible] = useState(false);
+  const { cheatSheetId } = route.params || {};
+  const [name, setName] = useState('');
+  const [players, setPlayers] = useState<any[]>([]);
+  const [playerModalVisible, setPlayerModalVisible] = useState(false);
   const [rankModalVisible, setRankModalVisible] = useState(false);
   const [selectedPlayerIndex, setSelectedPlayerIndex] = useState<number | null>(null);
   const [newRank, setNewRank] = useState<number | string>('');
+  const [moveTierModalVisible, setMoveTierModalVisible] = useState(false);
+  const [selectedTierIndex, setSelectedTierIndex] = useState<number | null>(null);
+  const [moveAboveRank, setMoveAboveRank] = useState<string>('');
+  const { loadCheatSheets } = useContext(AppContext);
+  const [loading, setLoading] = useState(true); // 🔥 added
 
-  const handleAddPlayer = (player: any) => {
-    if (players.length < 300) {
-      setPlayers((prev) => [...prev, player]);
-      setModalVisible(false);
+  const handleAddPlayer = (player: Player) => {
+    setPlayers(prev => {
+      if (prev.find(p => p.player_id === player.player_id)) {
+        console.warn("Player already added:", player.first_name, player.last_name);
+        return prev;
+      }
+      return [...prev, player];
+    });
+  };
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!cheatSheetId) {
+        Alert.alert("Error", "Missing cheat sheet ID.");
+        navigation.goBack();
+        return;
+      }
+
+      try {
+        const saved = await getDataFromAsyncStorage(`cheatSheet-${cheatSheetId}`);
+        if (saved) {
+          setName(saved.name || '');
+          setPlayers(saved.players || []);
+        }
+      } catch (e) {
+        console.error('[Init Load] Failed to load cheat sheet', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [cheatSheetId]);
+
+  useEffect(() => {
+    if (loading) return;
+    const debouncedSave = debounce(() => {
+      autoSaveCheatSheet(cheatSheetId, name, players).catch(e =>
+        console.error('[AutoSave] Failed to save cheat sheet', e)
+      );
+    }, 1000);
+
+    debouncedSave();
+    return () => debouncedSave.cancel();
+  }, [players, name, cheatSheetId, loading]);
+
+  const handleInsertTier = () => {
+    const newTier = createNewTier(players);
+    const existingTiers = players.filter(p => p.type === 'tier');
+
+    if (players.length === 0 || existingTiers.length === 0) {
+      setPlayers([newTier, ...players]);
     } else {
-      Alert.alert('Limit Reached', 'You can add up to 300 players to the cheat sheet.');
+      setPlayers([...players, newTier]);
     }
   };
 
   const handlePlayerRankingUpdate = () => {
     const validRank = Number(newRank);
-    if (isNaN(validRank) || validRank < 1 || validRank > players.length) {
-      Alert.alert('Invalid Rank', 'Rank must be between 1 and the total number of players.');
+    const totalPlayers = players.filter(p => p.type !== 'tier').length;
+
+    if (isNaN(validRank) || validRank < 1 || validRank > totalPlayers) {
+      Alert.alert('Invalid Rank', `Rank must be between 1 and ${totalPlayers}`);
       return;
     }
 
-    const updatedPlayers = [...players];
-    const playerToMove = updatedPlayers[selectedPlayerIndex!];
-    updatedPlayers.splice(selectedPlayerIndex!, 1);
-    updatedPlayers.splice(validRank - 1, 0, playerToMove);
-
-    setPlayers(updatedPlayers);
+    const targetIndex = getIndexOfRankedPlayer(players, validRank);
+    setPlayers(prev => moveItem(prev, selectedPlayerIndex!, targetIndex));
     setRankModalVisible(false);
     setNewRank('');
   };
@@ -50,43 +110,65 @@ const EditCheatSheetScreen = ({ route, navigation }: any) => {
     setPlayers(updatedPlayers);
   };
 
-  const handleSave = async () => {
-    if (name.trim() === '') {
-      Alert.alert('Error', 'Please provide a name for the cheat sheet.');
+  const handleMoveTier = () => {
+    if (selectedTierIndex === null) {
+      Alert.alert('Error', 'No tier selected to move.');
       return;
     }
-    const newCheatSheet = { name, players };
-    try {
-      let existingCheatSheets = await getDataFromAsyncStorage('cheatSheets');
-      const index = existingCheatSheets.findIndex((sheet: any) => sheet.name === cheatSheet.name);
-      if (index !== -1) {
-        existingCheatSheets[index] = { name, players };
-      } else {
-        existingCheatSheets.push(newCheatSheet);
-      }
-      await saveDataToAsyncStorage('cheatSheets', existingCheatSheets);
-      navigation.navigate('CheatSheet');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to save the cheat sheet.');
-    }
+
+    const rankToMoveAbove = parseInt(moveAboveRank, 10);
+    const targetIndex = getIndexOfRankedPlayer(players, rankToMoveAbove);
+
+    const newPlayerList = moveItem(players, selectedTierIndex, targetIndex);
+    setPlayers(newPlayerList);
+    setMoveTierModalVisible(false);
   };
 
-  const renderPlayer = ({ item, index }: any) => (
-    <View style={styles.playerItem}>
-      <View style={styles.playerRow}>
-        <Text style={styles.playerText}>
-          {`${index + 1}. ${item.first_name} ${item.last_name}`}
-        </Text>
-          <TouchableOpacity onPress={() => openRankModal(index)} style={styles.editButton}>
-            <Text style={styles.editButtonText}>Edit Rank</Text>
-          </TouchableOpacity>
+  const renderPlayer = ({ item, index }: any) => {
+    if (item.type === 'tier') {
+      return (
+        <TierRow
+          item={item}
+          index={index}
+          onMoveTier={(i: any) => {
+            setSelectedTierIndex(i);
+            setMoveAboveRank('');
+            setMoveTierModalVisible(true);
+          }}
+          onDeleteTier={(id: any) => setPlayers(prev => prev.filter(p => p.id !== id))}
+        />
+      );
+    }
+
+    const rank = getPlayerRank(players, index);
+    return (
+      <PlayerRow
+        item={item}
+        rank={rank}
+        index={index}
+        openRankModal={openRankModal}
+        handleRemovePlayer={handleRemovePlayer}
+      />
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Loading cheat sheet...</Text>
       </View>
-    </View>
-  );
+    );
+  }
+
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Create/Edit Cheat Sheet</Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Text style={styles.title}>Create/Edit Cheat Sheet</Text>
+        <TouchableOpacity onPress={handleInsertTier}>
+          <Text style={{ color: theme.colors.accent, fontWeight: 'bold' }}>+ Tier</Text>
+        </TouchableOpacity>
+      </View>
       <TextInput
         style={styles.input}
         placeholder="Cheat Sheet Name"
@@ -95,54 +177,43 @@ const EditCheatSheetScreen = ({ route, navigation }: any) => {
       />
       <FlatList
         data={players}
-        keyExtractor={(item) => String(item.player_id)}
-        renderItem={renderPlayer}
+        keyExtractor={(item, index) => {
+          if (item.type === 'tier') return item.id || `tier-${index}`;
+          return String(item.player_id);
+        }}
+        renderItem={({ item, index }) => renderPlayer({ item, index })}
         contentContainerStyle={styles.list}
       />
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setModalVisible(true)}
-        >
-          <Text style={styles.addButtonText}>Add Player</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Save</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setPlayerModalVisible(true)}
+      >
+        <Text style={styles.fabText}>＋</Text>
+      </TouchableOpacity>
 
       <SelectPlayerModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
+        visible={playerModalVisible}
+        onClose={() => setPlayerModalVisible(false)}
         onSelectPlayer={handleAddPlayer}
         filterPlayers={players}
       />
 
-      <Modal
+      <RankModal
         visible={rankModalVisible}
-        onRequestClose={() => setRankModalVisible(false)}
-        animationType="slide"
-      >
-        <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Edit Player Rank</Text>
-          <Text style={styles.modalText}>Current Rank: {selectedPlayerIndex! + 1}</Text>
-          <TextInput
-            style={styles.input}
-            keyboardType="numeric"
-            placeholder="Enter New Rank"
-            value={newRank?.toString()}
-            onChangeText={(text) => setNewRank(Number(text))}
-          />
-          <View style={styles.modalButtons}>
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={handlePlayerRankingUpdate}
-            >
-              <Text style={styles.modalButtonText}>Save Rank</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setRankModalVisible(false)}
+        currentRank={selectedPlayerIndex! + 1}
+        newRank={newRank}
+        setNewRank={setNewRank}
+        onSave={handlePlayerRankingUpdate}
+      />
+
+      <MoveTierModal
+        visible={moveTierModalVisible}
+        moveAboveRank={moveAboveRank}
+        setMoveAboveRank={setMoveAboveRank}
+        onMove={handleMoveTier}
+        onClose={() => setMoveTierModalVisible(false)}
+      />
     </View>
   );
 };
@@ -172,101 +243,23 @@ const styles = StyleSheet.create({
   list: {
     marginBottom: 20,
   },
-  playerItem: {
-    padding: 10,
-    backgroundColor: theme.colors.card,
-    borderRadius: 8,
-    marginVertical: 5,
-    borderWidth: 1,
-    borderColor: theme.colors.accent,
-  },
-  playerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  playerText: {
-    color: theme.colors.text,
-    fontSize: 16,
-  },
-  editButton: {
-    backgroundColor: theme.colors.background,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: theme.colors.accent,
-  },
-  editButtonText: {
-    color: theme.colors.accent,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    padding: 20,
+  fab: {
+    position: 'absolute',
+    bottom: 30,
+    right: 30,
+    backgroundColor: theme.colors.accent,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 5,
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.colors.gold,
-    marginBottom: 20,
-  },
-  modalText: {
-    fontSize: 16,
-    color: theme.colors.text,
-    marginBottom: 20,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '10%',
-  },
-  modalButton: {
-    backgroundColor: theme.colors.accent,
-    paddingVertical: 15,
-    borderRadius: 10,
-    flex: 1,
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  modalButtonText: {
+  fabText: {
+    fontSize: 30,
     color: theme.colors.background,
-    fontSize: 16,
-    fontWeight: '600',
   },
-  footer: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  saveButton: {
-    backgroundColor: theme.colors.primary,
-    paddingVertical: 15,
-    borderRadius: 10,
-    width: '100%',
-    alignItems: 'center',
-  },
-  saveButtonText: {
-    color: theme.colors.text,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  addButton: {
-    backgroundColor: theme.colors.accent,
-    paddingVertical: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-    width: '100%',
-    alignItems: 'center',
-  },
-  addButtonText: {
-    color: theme.colors.background,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
+
 });
 
 export default EditCheatSheetScreen;

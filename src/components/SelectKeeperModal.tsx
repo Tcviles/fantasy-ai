@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import {
   Modal,
   View,
@@ -10,14 +10,14 @@ import {
 } from 'react-native';
 import { theme, NFL_TEAMS } from '../utils/constants';
 import { ModalPicker } from './ModalPicker';
-import { fetchPlayersByPosition } from '../services/api';
 import { Player } from '../utils/types';
+import { AppContext } from '../context/AppContext'; // or PlayerContext
 
 type Stage = 'position' | 'team' | 'player' | 'details';
 
 type Props = {
   visible: boolean;
-  teamsCount: number;                 // for pick options (1..teams)
+  teamsCount: number;
   onClose: () => void;
   onSave: (data: { player: Player; round: number; pick: number }) => void;
   initial?: {
@@ -37,6 +37,8 @@ export default function SelectKeeperModal({
   onSave,
   initial,
 }: Props) {
+  const { state: { players: allPlayers } } = useContext(AppContext); // ⬅️ pull from state
+
   const [stage, setStage] = useState<Stage>('position');
   const [pos, setPos] = useState<string | null>(null);
   const [team, setTeam] = useState<string | null>(null);
@@ -54,7 +56,6 @@ export default function SelectKeeperModal({
 
   useEffect(() => {
     if (visible) {
-      // reset flow every time it opens
       setStage('position');
       setPos(null);
       setTeam(null);
@@ -68,30 +69,29 @@ export default function SelectKeeperModal({
     }
   }, [visible, initial]);
 
-  const loadPlayers = async (p: string, t?: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const resp = await fetchPlayersByPosition(p, t);
-      const data: Player[] = Array.isArray(resp) ? resp : resp?.players ?? [];
-      setPlayers(data);
-    } catch (e) {
-      setError('Failed to load players. Try again.');
-      setPlayers([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const choosePosition = (p: string) => {
     setPos(p);
     setStage('team');
   };
 
-  const chooseTeam = async (t: string) => {
+  const chooseTeam = (t: string) => {
     setTeam(t);
     setStage('player');
-    await loadPlayers(pos!, t);
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const filtered = allPlayers.filter(
+        (p: Player) => p.position === pos && p.team === t
+      );
+      setPlayers(filtered);
+    } catch (e) {
+      setError('Failed to filter players');
+      setPlayers([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const choosePlayer = (pl: Player) => {
