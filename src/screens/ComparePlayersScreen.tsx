@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { theme } from '../utils/constants';
-import { fetchPlayersByPosition, comparePlayers } from '../services/api';
+import { comparePlayers } from '../services/api';
 import RecommendationModal from '../components/RecommendationModal';
 import SelectPlayerModal from '../components/SelectPlayerModal';
 
@@ -17,19 +17,10 @@ export default function ComparePlayersScreen() {
   const [selectedPlayers, setSelectedPlayers] = useState<(any | null)[]>(Array(6).fill(null));
   const [modalVisible, setModalVisible] = useState(false);
   const [positionPickerIndex, setPositionPickerIndex] = useState<number | null>(null);
-  const [players, setPlayers] = useState<any[]>([]);
-  const [position, setPosition] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [shortAnswer, setShortAnswer] = useState('');
   const [longAnswer, setLongAnswer] = useState('');
   const [showRecommendationModal, setShowRecommendationModal] = useState(false);
-
-  // light lm
-  // cosmos vs dyanmo
-  // synapse
-  // machine learning model vs llm (no llm)
-  // oriely ai engineering
-
 
   const selectPlayer = (index: number) => {
     setPositionPickerIndex(index);

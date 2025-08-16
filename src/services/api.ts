@@ -3,6 +3,22 @@ import { KeeperRecResponse } from '../utils/types';
 
 const API_URL = 'https://zymj4plc0e.execute-api.us-east-1.amazonaws.com/Prod';
 
+export const fetchAllPlayers = async () => {
+  const url = `${API_URL}/players`;
+  console.log('[API] GET', url);
+
+  try {
+    const res = await axios.get(url); // No params
+    const data = Array.isArray(res.data) ? res.data : res.data?.players || [];
+    console.log(`[API] Loaded ${data.length} players`);
+    return data;
+  } catch (error: any) {
+    console.error('[API] Error fetching all players:', error?.response?.data || error.message);
+    throw error;
+  }
+};
+
+
 export const fetchPlayersByPosition = async (pos: string, team?: string) => {
   const url = `${API_URL}/players`;
   const params: Record<string, string> = { position: pos };

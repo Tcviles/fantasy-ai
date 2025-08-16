@@ -8,11 +8,21 @@ export type RootStackParamList = {
   CheatSheetChecklist: { cheatSheet: any };
 };
 
+export type Action = {
+    type: string
+    payload: any
+}
+
+export type State = {
+  players: Player[]
+}
+
 export type Player = {
   player_id: string | number;   // allow both from APIs
   first_name: string;
   last_name: string;
-  team?: string;
+  team: string;
+  position: string;
   is_injured?: boolean;
   is_favorite?: boolean;
 };

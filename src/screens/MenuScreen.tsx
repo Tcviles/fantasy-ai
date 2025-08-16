@@ -1,12 +1,20 @@
-import React from 'react';
+import React, { useContext, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../utils/types';
 import { theme } from '../utils/constants';
+import { AppContext } from '../context/AppContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Menu'>;
 
 export default function MenuScreen({ navigation }: Props) {
+
+  const { loadPlayers } = useContext(AppContext);
+
+  useEffect(() => {
+    loadPlayers();
+  }, []);
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Fantasy AI</Text>

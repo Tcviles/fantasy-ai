@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { Modal, View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Button } from 'react-native';
 import { NFL_TEAMS, POSITIONS, theme } from '../utils/constants';
-import { fetchPlayersByPosition } from '../services/api';
 import { Player } from '../utils/types';
+import { AppContext } from '../context/AppContext'; // or PlayerContext if you renamed it
 
 type Props = {
   visible: boolean;
   onClose: () => void;
   onSelectPlayer: (player: Player) => void;
-  filterPlayers?: any[];  // New prop to filter players (optional)
+  filterPlayers?: Player[];
 };
 
 type Stage = 'positions' | 'teams' | 'players';
@@ -22,6 +22,8 @@ export default function SelectPlayerModal({
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { state: { players: allPlayers } } = useContext(AppContext);
 
   useEffect(() => {
     if (visible) {
@@ -39,19 +41,22 @@ export default function SelectPlayerModal({
     setStage('teams');
   };
 
-  const onChooseTeam = async (team: string) => {
+  const onChooseTeam = (team: string) => {
     setSelectedTeam(team);
     setStage('players');
     setLoading(true);
     setError(null);
+
     try {
-      const resp = await fetchPlayersByPosition(selectedPos!, team);
-      const data: Player[] = Array.isArray(resp) ? resp : (resp?.players ?? []);
-      
-      // Filter out already selected players if filterPlayers is provided
-      setPlayers(data.filter(player => !filterPlayers.some(selected => selected.player_id === player.player_id))); 
+      const filtered = allPlayers.filter(
+        (p: Player) =>
+          p.position === selectedPos &&
+          p.team === team &&
+          !filterPlayers.some(fp => fp.player_id === p.player_id)
+      );
+      setPlayers(filtered);
     } catch (e) {
-      setError('Failed to load players. Try again.');
+      setError('Failed to filter players.');
       setPlayers([]);
     } finally {
       setLoading(false);
@@ -119,8 +124,8 @@ export default function SelectPlayerModal({
           {stage !== 'positions' && (
             <TouchableOpacity
               onPress={() => {
-                if (stage === 'players') { setStage('teams'); }
-                else if (stage === 'teams') { setStage('positions'); }
+                if (stage === 'players') setStage('teams');
+                else if (stage === 'teams') setStage('positions');
               }}
               style={styles.backBtn}
             >
