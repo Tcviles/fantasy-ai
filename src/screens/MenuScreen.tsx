@@ -28,11 +28,7 @@ export default function MenuScreen({ navigation }: Props) {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('CheatSheet')}>
-        <Text style={styles.buttonText}>Cheat Sheet Creator</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('DraftChecklist')}>
-        <Text style={styles.buttonText}>Draft Checklist</Text>
+        <Text style={styles.buttonText}>Cheat Sheets</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Dev')}>

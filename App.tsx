@@ -8,9 +8,7 @@ import { RootStackParamList } from './src/utils/types';
 import KeeperCalculatorScreen from './src/screens/KeeperCalculatorScreen';
 import CheatSheetScreen from './src/screens/CheatSheetScreen';
 import EditCheatSheetScreen from './src/screens/EditCheatSheetScreen';
-import CheatSheetChecklist from './src/components/CheatSheetChecklist';
-import { AppContext, AppProvider } from './src/context/AppContext';
-import DraftChecklistScreen from './src/screens/DraftChecklistScreen';
+import { AppProvider } from './src/context/AppContext';
 import DraftChecklistView from './src/screens/DraftChecklistView';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -24,10 +22,8 @@ export default function App() {
           <Stack.Screen name="Compare" component={ComparePlayersScreen} />
           <Stack.Screen name="KeeperCalc" component={KeeperCalculatorScreen} />
           <Stack.Screen name="CheatSheet" component={CheatSheetScreen} />
-          <Stack.Screen name="DraftChecklist" component={DraftChecklistScreen} />
           <Stack.Screen name="DraftChecklistView" component={DraftChecklistView} />
           <Stack.Screen name="EditCheatSheet" component={EditCheatSheetScreen} />
-          <Stack.Screen name="CheatSheetChecklist" component={CheatSheetChecklist} />
           <Stack.Screen name="Dev" component={DevScreen} />
         </Stack.Navigator>
       </NavigationContainer>

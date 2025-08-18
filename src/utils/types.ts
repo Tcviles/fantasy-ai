@@ -4,25 +4,31 @@ export type RootStackParamList = {
   Dev: undefined;
   KeeperCalc: undefined;
   CheatSheet: undefined;
-  DraftChecklist: undefined;
   DraftChecklistView: { sheet: any };
   EditCheatSheet: { cheatSheetId?: string } | undefined;
-  CheatSheetChecklist: { cheatSheet: any };
 };
 
 export type Action = {
-    type: string
-    payload: any
+  type: string
+  payload: any
 }
 
 export type State = {
   players: Player[]
 }
 
-export type ChecklistItem = Player & { drafted?: boolean } | { type: 'tier', title: string };
+export type TierItem = {
+  type: 'tier';
+  id: 'string';
+  title: string;
+};
 
-export function isPlayerItem(item: ChecklistItem): item is Player & { drafted?: boolean } {
-  return !('type' in item);
+export type ChecklistItem =
+  | (Player & { type: 'player'; drafted?: boolean })
+  | TierItem;
+
+export function isPlayerItem(item: ChecklistItem): item is Player & { type: 'player'; drafted?: boolean } {
+  return item.type === 'player';
 }
 
 export type Player = {

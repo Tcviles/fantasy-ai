@@ -20,15 +20,19 @@ export default function DraftChecklistView() {
   const [positionFilter, setPositionFilter] = useState<string | null>(null);
   const [localPlayers, setLocalPlayers] = useState(
     originalPlayers.map((p: any) =>
-      p.type === 'tier' ? p : { ...p, drafted: false }
+      p.type === 'tier' ? p : { ...p, type: 'player', drafted: false }
     )
   );
 
-  const toggleDrafted = (index: number) => {
+  const toggleDrafted = (player_id: number | string) => {
+    console.log("toggling ", player_id)
     setLocalPlayers((prev: ChecklistItem[]) =>
-      prev.map((item, i) => {
-        if (i === index && isPlayerItem(item)) {
-          return { ...item, drafted: !item.drafted };
+      prev.map((item) => {
+        if (isPlayerItem(item)) {
+          if (String(item.player_id) === String(player_id)) {
+            const newItem = { ...item, drafted: !item.drafted };
+            return newItem
+          }
         }
         return item;
       })
@@ -63,7 +67,7 @@ export default function DraftChecklistView() {
           styles.playerItem,
           item.drafted && styles.draftedItem,
         ]}
-        onPress={() => toggleDrafted(index)}
+        onPress={() => toggleDrafted(item.player_id)}
       >
         <Text style={[styles.playerText, item.drafted && styles.draftedText]}>
           {item.first_name} {item.last_name} ({item.team} - {item.position})
@@ -120,7 +124,12 @@ export default function DraftChecklistView() {
 
       <FlatList
         data={visiblePlayers}
-        keyExtractor={(item, index) => item.id || `${item.player_id}-${index}`}
+        keyExtractor={(item, index) => {
+          if (isPlayerItem(item)) {
+            return `player-${item.player_id}`;
+          }
+          return `tier-${item.title || 'untitled'}-${index}`;
+        }}
         renderItem={renderPlayer}
         contentContainerStyle={{ paddingBottom: 80 }}
       />

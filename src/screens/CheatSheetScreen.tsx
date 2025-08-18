@@ -2,17 +2,20 @@ import React, { useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { theme } from '../utils/constants';
-import { RootStackParamList } from '../utils/types';
+import { CheatSheet, Player, RootStackParamList } from '../utils/types';
 import { AppContext } from '../context/AppContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { saveDataToAsyncStorage } from '../utils/asyncStorageHelper';
 import { createBlankCheatSheet } from '../utils/cheatSheetHelpers';
+import fantasypros_ecr from '../utils/cheatSheets/fantasypros_ecr.json';
+import uuid from 'react-native-uuid';
+
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CheatSheet'>;
 
 const CheatSheetScreen = ({ navigation }: Props) => {
   const {
-    state: { cheatSheets },
+    state: { cheatSheets, players: allPlayers },
     loadCheatSheets,
     deleteCheatSheet,
   } = useContext(AppContext);
@@ -25,71 +28,101 @@ const CheatSheetScreen = ({ navigation }: Props) => {
   );
 
   const handleCreate = () => {
+    console.log("hit create")
     const newSheet = createBlankCheatSheet();
+    console.log("[CheatSheetScreen::handleCreate] newSheet: ", newSheet)
     saveDataToAsyncStorage(`cheatSheet-${newSheet.id}`, newSheet);
     saveDataToAsyncStorage('cheatSheets', [...cheatSheets, newSheet]);
     loadCheatSheets();
     navigation.navigate('EditCheatSheet', { cheatSheetId: newSheet.id });
   };
 
+  const handleImportFantasyPros = () => {
+    const sheetId = uuid.v4();
+
+    const players = fantasypros_ecr.map((fpPlayer): Player => {
+      const matchedPlayer = allPlayers.find(
+        (ap: Player) =>
+          ap.first_name === fpPlayer.first_name &&
+          ap.last_name === fpPlayer.last_name &&
+          ap.team === fpPlayer.team &&
+          ap.position === fpPlayer.position
+      );
+
+      return {
+        ...fpPlayer,
+        player_id: matchedPlayer?.player_id || uuid.v4(),
+      };
+    });
+
+    const newSheet: CheatSheet = {
+      id: sheetId,
+      name: 'FantasyPros 2025 Overall',
+      players,
+      modified: new Date().toISOString(),
+    };
+
+    saveDataToAsyncStorage(`cheatSheet-${sheetId}`, newSheet);
+    saveDataToAsyncStorage('cheatSheets', [...cheatSheets, newSheet]);
+    loadCheatSheets();
+    navigation.navigate('EditCheatSheet', { cheatSheetId: sheetId });
+  };
 
   const handleEdit = (cheatSheet: any) => {
     console.log("[CheatSheetScreen] handleEdit: ", cheatSheet)
     navigation.navigate('EditCheatSheet', { cheatSheetId: cheatSheet.id });
   };
 
+  const handleDraft = (sheet: CheatSheet) => {
+    navigation.navigate('DraftChecklistView', { sheet });
+  };
+
   const handleDelete = (name: string) => {
-    Alert.alert('Delete Cheat Sheet', `Delete "${name}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => deleteCheatSheet(name),
-      },
-    ]);
+    deleteCheatSheet(name)
   };
 
   const renderItem = ({ item }: any) => (
-    <View style={styles.row}>
-      <View style={styles.cellLarge}>
-        <Text style={styles.cellText}>{item.name}</Text>
-      </View>
-      <View style={styles.cell}>
-        <Text style={styles.cellText}>{item.modified || '—'}</Text>
-      </View>
-      <View style={styles.cellSmall}>
-        <Text style={styles.cellText}>{item.notes?.length || 0}</Text>
-      </View>
-      <View style={styles.actions}>
-        <TouchableOpacity onPress={() => handleEdit(item)}>
-          <Text style={styles.edit}>View/Edit</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleDelete(item.name)}>
-          <Text style={styles.delete}>Delete</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    <TouchableOpacity
+      onPress={() =>
+        Alert.alert(
+          'Cheat Sheet Options',
+          `${item.name}`,
+          [
+            { text: 'Edit', onPress: () => handleEdit(item) },
+            { text: 'Draft', onPress: () => handleDraft(item) },
+            { text: 'Delete', style: 'destructive', onPress: () => handleDelete(item.name) },
+            { text: 'Cancel', style: 'cancel' },
+          ]
+        )
+      }
+      style={styles.row}
+    >
+      <Text style={styles.cellText}>{item.name}</Text>
+    </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Cheat Sheet Creator</Text>
-      <TouchableOpacity style={styles.createButton} onPress={handleCreate}>
-        <Text style={styles.createButtonText}>Create Cheat Sheet</Text>
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => {
+          console.log("wat")
+          handleCreate()
+        }}
+      >
+        <Text style={styles.fabText}>＋</Text>
       </TouchableOpacity>
+      {!cheatSheets.some((sheet: CheatSheet) => sheet.name === 'FantasyPros 2025 Overall') && (
+        <TouchableOpacity style={styles.createButton} onPress={handleImportFantasyPros}>
+          <Text style={styles.createButtonText}>Import FantasyPros 2025</Text>
+        </TouchableOpacity>
+      )}
 
       <FlatList
         data={cheatSheets}
         keyExtractor={(item) => item.name}
         renderItem={renderItem}
-        ListHeaderComponent={
-          <View style={styles.headerRow}>
-            <Text style={styles.headerCell}>Cheat Sheet</Text>
-            <Text style={styles.headerCell}>Last Modified</Text>
-            <Text style={styles.headerCell}>Notes</Text>
-            <Text style={styles.headerCell}>Actions</Text>
-          </View>
-        }
         contentContainerStyle={styles.list}
       />
     </View>
@@ -180,6 +213,23 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
     color: theme.colors.text,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 30,
+    right: 30,
+    backgroundColor: theme.colors.accent,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 10,
+    zIndex: 10
+  },
+  fabText: {
+    fontSize: 30,
+    color: theme.colors.background,
   },
 });
 

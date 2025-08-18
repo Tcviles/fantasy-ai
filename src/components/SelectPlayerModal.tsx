@@ -1,8 +1,11 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { Modal, View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Button } from 'react-native';
+import {
+  Modal, View, Text, FlatList, TouchableOpacity, StyleSheet,
+  ActivityIndicator, Button, ScrollView
+} from 'react-native';
 import { NFL_TEAMS, POSITIONS, theme } from '../utils/constants';
 import { Player } from '../utils/types';
-import { AppContext } from '../context/AppContext'; // or PlayerContext if you renamed it
+import { AppContext } from '../context/AppContext';
 
 type Props = {
   visible: boolean;
@@ -11,134 +14,107 @@ type Props = {
   filterPlayers?: Player[];
 };
 
-type Stage = 'positions' | 'teams' | 'players';
-
 export default function SelectPlayerModal({
   visible, onClose, onSelectPlayer, filterPlayers = []
 }: Props) {
-  const [stage, setStage] = useState<Stage>('positions');
-  const [selectedPos, setSelectedPos] = useState<string | null>(null);
-  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const { state: { players: allPlayers } } = useContext(AppContext);
 
+  const [selectedPos, setSelectedPos] = useState<string | null>(null);
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [filteredPlayers, setFilteredPlayers] = useState<Player[]>([]);
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
-    if (visible) {
-      setStage('positions');
-      setSelectedPos(null);
-      setSelectedTeam(null);
-      setPlayers([]);
-      setLoading(false);
-      setError(null);
-    }
-  }, [visible]);
-
-  const onChoosePosition = (pos: string) => {
-    setSelectedPos(pos);
-    setStage('teams');
-  };
-
-  const onChooseTeam = (team: string) => {
-    setSelectedTeam(team);
-    setStage('players');
     setLoading(true);
-    setError(null);
-
-    try {
-      const filtered = allPlayers.filter(
-        (p: Player) =>
-          p.position === selectedPos &&
-          p.team === team &&
-          !filterPlayers.some(fp => fp.player_id === p.player_id)
+    const timeout = setTimeout(() => {
+      const filter = allPlayers.filter(
+        (p: Player) => {
+          const notInSheet = !filterPlayers.some(fp => fp.player_id === p.player_id);
+          const matchesPos = selectedPos ? p.position === selectedPos : true;
+          const matchesTeam = selectedTeam ? p.team === selectedTeam : true;
+          return notInSheet && matchesPos && matchesTeam;
+        }
       );
-      setPlayers(filtered);
-    } catch (e) {
-      setError('Failed to filter players.');
-      setPlayers([]);
-    } finally {
+      setFilteredPlayers(filter);
       setLoading(false);
-    }
+    }, 100);
+
+    return () => clearTimeout(timeout);
+  }, [selectedPos, selectedTeam, allPlayers, filterPlayers]);
+
+  const togglePos = (pos: string) => {
+    setSelectedPos(prev => (prev === pos ? null : pos));
   };
+
+  const toggleTeam = (team: string) => {
+    setSelectedTeam(prev => (prev === team ? null : team));
+  };
+
+  const renderFilterButtons = (items: string[], selected: string | null, toggleFn: (val: string) => void, columns: number) => (
+    <View style={[styles.gridWrap, { flexDirection: 'row', flexWrap: 'wrap' }]}>
+      {items.map(item => (
+        <TouchableOpacity
+          key={item}
+          onPress={() => toggleFn(item)}
+          style={[styles.filterBtn, selected === item && styles.activeFilter]}
+        >
+          <Text style={[styles.filterText, selected === item && styles.activeFilterText]}>{item}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalContainer}>
-        <Text style={styles.modalTitle}>
-          {stage === 'positions' && 'Select Position'}
-          {stage === 'teams' && `Select Team — ${selectedPos}`}
-          {stage === 'players' && `${selectedPos} Players on ${selectedTeam}`}
-        </Text>
+        <Text style={styles.modalTitle}>Select a Player</Text>
 
-        {stage === 'positions' && (
-          <FlatList
-            data={POSITIONS}
-            keyExtractor={(item) => item}
-            numColumns={2}
-            columnWrapperStyle={styles.rowWrap}
-            renderItem={({ item }) => (
-              <TouchableOpacity onPress={() => onChoosePosition(item)} style={styles.tile}>
-                <Text style={styles.tileText}>{item}</Text>
-              </TouchableOpacity>
-            )}
-          />
-        )}
+        <View style={styles.filterRowContainer}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.filterTitle}>Position</Text>
+            {renderFilterButtons(POSITIONS, selectedPos, togglePos, 1)}
+          </View>
+          <View style={{ flex: 3 }}>
+            <Text style={styles.filterTitle}>Team</Text>
+            {renderFilterButtons(NFL_TEAMS, selectedTeam, toggleTeam, 3)}
+          </View>
+        </View>
 
-        {stage === 'teams' && (
-          <FlatList
-            data={NFL_TEAMS}
-            keyExtractor={(item) => item}
-            numColumns={3}
-            columnWrapperStyle={styles.rowWrap}
-            renderItem={({ item }) => (
-              <TouchableOpacity onPress={() => onChooseTeam(item)} style={styles.tile}>
-                <Text style={styles.tileText}>{item}</Text>
-              </TouchableOpacity>
-            )}
-          />
-        )}
-
-        {stage === 'players' && (
-          <>
-            {loading && <ActivityIndicator size="large" color={theme.colors.accent} style={{ marginTop: 16 }} />}
-            {!loading && error && <Text style={{ color: theme.colors.danger, textAlign: 'center' }}>{error}</Text>}
-            {!loading && !error && (
-              <FlatList
-                data={players}
-                keyExtractor={(item) => String(item.player_id)}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    onPress={() => {
-                      onSelectPlayer(item);
-                      onClose(); // close modal after selection
-                    }}
-                    style={styles.listRow}
-                  >
-                    <Text style={styles.listRowText}>
-                      {item.first_name} {item.last_name}{item.team ? ` (${item.team})` : ''}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              />
-            )}
-          </>
-        )}
+        <View style={{ flex: 1, marginTop: 16 }}>
+          {loading ? (
+            <ActivityIndicator size="large" color={theme.colors.accent} />
+          ) : (
+            <FlatList
+              data={filteredPlayers}
+              keyExtractor={(item) => String(item.player_id)}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => {
+                    onSelectPlayer(item);
+                    setSelectedPos(null);
+                    setSelectedTeam(null);
+                    onClose();
+                  }}
+                  style={styles.listRow}
+                >
+                  <Text style={styles.listRowText}>
+                    {item.first_name} {item.last_name} ({item.team})
+                  </Text>
+                </TouchableOpacity>
+              )}
+            />
+          )}
+        </View>
 
         <View style={styles.footerRow}>
-          {stage !== 'positions' && (
-            <TouchableOpacity
-              onPress={() => {
-                if (stage === 'players') setStage('teams');
-                else if (stage === 'teams') setStage('positions');
-              }}
-              style={styles.backBtn}
-            >
-              <Text style={styles.backText}>Back</Text>
-            </TouchableOpacity>
-          )}
-          <Button title="Cancel" color={theme.colors.danger} onPress={onClose} />
+          <Button
+            title="Cancel"
+            color={theme.colors.danger}
+            onPress={() => {
+              setSelectedPos(null);
+              setSelectedTeam(null);
+              onClose();
+            }} />
         </View>
       </View>
     </Modal>
@@ -148,16 +124,25 @@ export default function SelectPlayerModal({
 const styles = StyleSheet.create({
   modalContainer: { flex: 1, padding: 20, backgroundColor: theme.colors.background },
   modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 12, textAlign: 'center', color: theme.colors.gold },
-  rowWrap: { justifyContent: 'space-between', marginBottom: theme.spacing.sm },
-  tile: {
-    flex: 1, backgroundColor: theme.colors.card, margin: 5, paddingVertical: 18,
-    borderRadius: theme.radius.md, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: theme.colors.accent,
+  filterTitle: { fontSize: 16, marginBottom: 6, fontWeight: '600', color: theme.colors.text },
+  filterRowContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  gridWrap: { flexDirection: 'row', flexWrap: 'wrap' },
+  filterBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
+    marginRight: 6,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: theme.colors.accent,
   },
-  tileText: { fontSize: 18, fontWeight: '700', color: theme.colors.text },
+  activeFilter: {
+    backgroundColor: theme.colors.accent,
+  },
+  filterText: { color: theme.colors.text, fontWeight: '600', fontSize: 14 },
+  activeFilterText: { color: theme.colors.background },
   listRow: { padding: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#333' },
   listRowText: { color: theme.colors.text, fontSize: 16, fontWeight: '600' },
-  footerRow: { marginTop: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  backBtn: { padding: 10 },
-  backText: { color: theme.colors.accent, fontWeight: '700' },
+  footerRow: { marginTop: 8, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
 });

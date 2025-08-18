@@ -42,7 +42,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', padding: 20, backgroundColor: theme.colors.background },
   title: { fontSize: 20, fontWeight: 'bold', color: theme.colors.gold, marginBottom: 20 },
   text: { fontSize: 16, color: theme.colors.text, marginBottom: 20 },
-  input: { padding: 10, borderWidth: 1, borderColor: theme.colors.accent, borderRadius: 8, fontSize: 16 },
+  input: { 
+    padding: 10, 
+    borderWidth: 1, 
+    borderColor: theme.colors.accent, 
+    borderRadius: 8, 
+    fontSize: 16,
+    color: theme.colors.text
+  },
   button: {
     marginTop: 20,
     backgroundColor: theme.colors.accent,
